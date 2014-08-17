@@ -1,0 +1,8 @@
+[package]
+
+name = "track_visulisation"
+version = "0.0.1"
+authors = ["Matthew Hall <matthew@quickbeam.me.uk>"]
+
+[dependencies.osmxml]
+git = "https://github.com/mattyhall/osmxml"
