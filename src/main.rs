@@ -7,8 +7,8 @@ use track_visulisation::{Vertex, Face};
 
 fn expand_element(elem: &OsmElement, elements: &HashMap<int, OsmElement>) -> Vec<(f64, f64)> {
     let refs = match *elem {
-        Relation {id: _, members: ref m, tags: _} => m,
-        Way {id: _, nodes: ref n, tags: _} => n,
+        Relation {members: ref m, ..} => m,
+        Way {nodes: ref n, ..} => n,
         Node {lat: lat, lng: lng, ..} => return vec!((lat, lng))
     };
     let mut latlngs = Vec::new(); 
