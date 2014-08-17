@@ -1,7 +1,9 @@
+extern crate track_visulisation;
 extern crate osmxml;
 
 use std::collections::HashMap;
 use osmxml::{Osm, OsmElement, Relation, Way, Node};
+use track_visulisation::{Vertex, Face};
 
 fn expand_element(elem: &OsmElement, elements: &HashMap<int, OsmElement>) -> Vec<(f64, f64)> {
     let refs = match *elem {
@@ -33,4 +35,6 @@ fn main() {
         }
     }).next().unwrap();
     println!("{}", expand_element(relation, &osm.elements));
+    println!("{}", Vertex(10.0, 10.0, 10.0).to_string());
+    println!("{}", Face(vec!(-1, -2, -3, -4)).to_string());
 }
