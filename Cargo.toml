@@ -8,4 +8,11 @@ authors = ["Matthew Hall <matthew@quickbeam.me.uk>"]
 git = "https://github.com/mattyhall/osmxml"
 
 [dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs"
+git = "https://github.com/Ogeon/cgmath-rs/"
+#git = "https://github.com/bjz/cgmath-rs"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
+
+[dependencies.http]
+git = "https://github.com/chris-morgan/rust-http"

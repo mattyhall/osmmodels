@@ -1,5 +1,3 @@
-use std::io::Writer;
-
 #[deriving(Show)]
 pub enum WavefrontValue {
     Vertex(f64, f64, f64),
