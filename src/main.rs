@@ -67,8 +67,8 @@ fn side(w: &mut Wavefront, height: f64, a: Vec2, b: Vec2) {
 
 fn to_wavefront(thickness: f64, height: f64, ways: Vec<Vec<Vec2>>) -> Wavefront {
     let mut w = Wavefront::new();
-    for latlngs in ways.iter() {
-        let mut iter = latlngs.iter().zip(latlngs.iter().skip(1));
+    for coords in ways.iter() {
+        let mut iter = coords.iter().zip(coords.iter().skip(1));
         for (&a, &b) in iter {
             let ab = Vector2::new(b.x - a.x, b.y - a.y).normalize();
             let p = Vector2::new(-ab.y, ab.x);
@@ -92,17 +92,17 @@ fn scale(points: Vec<f64>, size: int) -> (f64, f64) {
     ((size as f64) / (max - min), min)
 }
 
-fn latlngs_to_coords(latlngs: Vec<Vec<(f64, f64)>>, size: int) -> Vec<Vec<Vec2>> {
+fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> Vec<Vec<Vec2>> {
     let mut coords = Vec::new();
-    let flat = latlngs.as_slice().concat_vec();
+    let flat = ways.as_slice().concat_vec();
     let lats = flat.iter().map(|&(x, _)| x).collect();
     let lngs = flat.iter().map(|&(_, y)| y).collect();
     let (sx, min_x) = scale(lats, size);
     let (sy, min_y) = scale(lngs, size);
     let s = if sx < sy {sx} else {sy};
-    for ll in latlngs.iter() {
+    for latlngs in ways.iter() {
         let mut way = Vec::new();
-        for &(lat, lng) in ll.iter() {
+        for &(lat, lng) in latlngs.iter() {
             way.push(Vector2::new((lat - min_x) * s, (lng - min_y) * s));
         }
         coords.push(way);
