@@ -148,11 +148,11 @@ fn get_heights(latlngs: &Vec<(f64, f64)>) -> Vec<f64> {
     heights
 }
 
-fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> Vec<Vec<Vec3>> {
+fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> (Vec<Vec<Vec3>>, f64) {
     let mut coords = Vec::new();
     let flat = ways.as_slice().concat_vec();
     let heights = get_heights(&flat);
-    let (sh, min_h) = scale(&heights, 5);
+    let (_, min_h) = scale(&heights, 5);
     let lats = flat.iter().map(|&(x, _)| x).collect();
     let lngs = flat.iter().map(|&(_, y)| y).collect();
     let (sx, min_x) = scale(&lats, size);
@@ -163,13 +163,17 @@ fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> Vec<Vec<Vec3>> {
         let mut way = Vec::new();
         for &(lat, lng) in latlngs.iter() {
             way.push(Vector3::new((lat - min_x) * s,
-                                  (heights[i] - min_h) * sh + 0.1,
+                                  metres_to_coord(heights[i] - min_h + 0.1, s),
                                   (lng - min_y) * s));
             i += 1
         }
         coords.push(way);
     }
-    coords
+    (coords, s)
+}
+
+fn metres_to_coord(m: f64, s: f64) -> f64 {
+    (m / 111319.9) * s
 }
 
 fn main() {
@@ -185,7 +189,7 @@ fn main() {
         }
     }).next().unwrap();
     let latlngs = expand_relation(relation, &osm.elements);
-    let coords = latlngs_to_coords(latlngs, 200);
-    let obj = to_wavefront(0.5, coords);
+    let (coords, scale) = latlngs_to_coords(latlngs, 200);
+    let obj = to_wavefront(metres_to_coord(14.0, scale), coords);
     println!("{}", obj.to_string());
 }
