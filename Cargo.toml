@@ -6,3 +6,6 @@ authors = ["Matthew Hall <matthew@quickbeam.me.uk>"]
 
 [dependencies.osmxml]
 git = "https://github.com/mattyhall/osmxml"
+
+[dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs"

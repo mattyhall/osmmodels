@@ -2,7 +2,7 @@ use std::io::Writer;
 
 #[deriving(Show)]
 pub enum WavefrontValue {
-    Vertex(f32, f32, f32),
+    Vertex(f64, f64, f64),
     Face(Vec<int>)
 }
 
@@ -18,6 +18,7 @@ impl WavefrontValue {
     }
 }
 
+#[deriving(Show)]
 pub struct Wavefront {
     pub values: Vec<WavefrontValue>
 }
@@ -27,12 +28,12 @@ impl Wavefront {
         Wavefront {values: Vec::new()}
     }
 
-    pub fn to_string(&self) {
+    pub fn to_string(&self) -> String {
         let vals: Vec<String> = self.values.iter().map(|v| v.to_string()).collect();
-        vals.connect("\n");
+        vals.connect("\n")
     }
 
-    pub fn add_vertex(&mut self, x: f32, y: f32, z: f32) {
+    pub fn add_vertex(&mut self, x: f64, y: f64, z: f64) {
         self.values.push(Vertex(x, y, z));
     }
 
