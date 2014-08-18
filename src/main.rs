@@ -8,21 +8,43 @@ use track_visulisation::{Wavefront};
 use cgmath::{Vector2, EuclideanVector, Vector};
 use std::cmp::min;
 
-fn expand_element(elem: &OsmElement, elements: &HashMap<int, OsmElement>) -> Vec<(f64, f64)> {
+fn expand_node(elem: &OsmElement) -> (f64, f64) {
+    match *elem {
+        Node {lat: lat, lng: lng, ..} => (lat, lng),
+        _ => fail!("expand_node must be passed a node")
+    }
+}
+
+fn expand_way(elem: &OsmElement, elements: &HashMap<int, OsmElement>) -> Vec<(f64, f64)> {
     let refs = match *elem {
-        Relation {members: ref m, ..} => m,
-        Way {nodes: ref n, ..} => n,
-        Node {lat: lat, lng: lng, ..} => return vec!((lat, lng))
+        Way {nodes: ref ns, ..} => ns,
+        _ => fail!("expand_way must be passed a way")
     };
-    let mut latlngs = Vec::new(); 
+    let mut latlngs = Vec::new();
     for r in refs.iter() {
-        let vs = match elements.find(r) {
-            Some(e) => expand_element(e, elements),
-            None => fail!("Could not find element with id {}", r)
-        };
-        latlngs.push_all(vs.as_slice());
+        match elements.find(r) {
+            Some(e@&Node{..}) => latlngs.push(expand_node(e)),
+            None => fail!("Could not find element with id {}", r),
+            _ => ()
+        }
     }
     latlngs
+}
+
+fn expand_relation(elem: &OsmElement, elements: &HashMap<int, OsmElement>) -> Vec<Vec<(f64, f64)>> {
+    let refs = match *elem {
+        Relation {members: ref m, ..} => m,
+        _ => fail!("expand_relation must be passed a relation"),
+    };
+    let mut ways = Vec::new(); 
+    for r in refs.iter() {
+        match elements.find(r) {
+            Some(e@&Way{..}) => ways.push(expand_way(e, elements)),
+            None => fail!("Could not find element with id {}", r),
+            _ => (),
+        };
+    }
+    ways
 }
 
 type Vec2 = Vector2<f64>;
@@ -43,18 +65,20 @@ fn side(w: &mut Wavefront, height: f64, a: Vec2, b: Vec2) {
     w.add_face(vec!(-1, -2, -3, -4));
 }
 
-fn to_wavefront(thickness: f64, height: f64, latlngs: Vec<Vec2>) -> Wavefront {
-    let mut iter = latlngs.iter().zip(latlngs.iter().skip(1));
+fn to_wavefront(thickness: f64, height: f64, ways: Vec<Vec<Vec2>>) -> Wavefront {
     let mut w = Wavefront::new();
-    for (&a, &b) in iter {
-        let ab = Vector2::new(b.x - a.x, b.y - a.y).normalize();
-        let p = Vector2::new(-ab.y, ab.x);
-        let a1 = a + p.mul_s(thickness);
-        let b1 = b + p.mul_s(thickness);
-        top(&mut w, height, a, a1, b, b1);
-        side(&mut w, height, a, b);
-        side(&mut w, height, a1, b1);
-        top(&mut w, 0.0, a, a1, b, b1);
+    for latlngs in ways.iter() {
+        let mut iter = latlngs.iter().zip(latlngs.iter().skip(1));
+        for (&a, &b) in iter {
+            let ab = Vector2::new(b.x - a.x, b.y - a.y).normalize();
+            let p = Vector2::new(-ab.y, ab.x);
+            let a1 = a + p.mul_s(thickness);
+            let b1 = b + p.mul_s(thickness);
+            top(&mut w, height, a, a1, b, b1);
+            side(&mut w, height, a, b);
+            side(&mut w, height, a1, b1);
+            top(&mut w, 0.0, a, a1, b, b1);
+        }
     }
     w
 }
@@ -68,18 +92,21 @@ fn scale(points: Vec<f64>, size: int) -> (f64, f64) {
     ((size as f64) / (max - min), min)
 }
 
-fn latlngs_to_coords(latlngs: Vec<(f64, f64)>, size: int) -> Vec<Vec2> {
-    let lats = latlngs.iter().map(|&(x, _)| x).collect();
-    let lngs = latlngs.iter().map(|&(_, y)| y).collect();
+fn latlngs_to_coords(latlngs: Vec<Vec<(f64, f64)>>, size: int) -> Vec<Vec<Vec2>> {
+    let mut coords = Vec::new();
+    let flat = latlngs.as_slice().concat_vec();
+    let lats = flat.iter().map(|&(x, _)| x).collect();
+    let lngs = flat.iter().map(|&(_, y)| y).collect();
     let (sx, min_x) = scale(lats, size);
     let (sy, min_y) = scale(lngs, size);
     let s = if sx < sy {sx} else {sy};
-    let mut coords = Vec::new();
-
-    for &(lat, lng) in latlngs.iter() {
-        coords.push(Vector2::new((lat - min_x) * s, (lng - min_y) * s));
+    for ll in latlngs.iter() {
+        let mut way = Vec::new();
+        for &(lat, lng) in ll.iter() {
+            way.push(Vector2::new((lat - min_x) * s, (lng - min_y) * s));
+        }
+        coords.push(way);
     }
-
     coords
 }
 
@@ -95,7 +122,7 @@ fn main() {
             _ => false
         }
     }).next().unwrap();
-    let latlngs = expand_element(relation, &osm.elements);
+    let latlngs = expand_relation(relation, &osm.elements);
     let coords = latlngs_to_coords(latlngs, 200);
     let obj = to_wavefront(0.5, 2.0, coords);
     println!("{}", obj.to_string());
