@@ -8,7 +8,7 @@ extern crate url;
 use std::collections::HashMap;
 use osmxml::{Osm, OsmElement, Relation, Way, Node};
 use track_visulisation::{Wavefront};
-use cgmath::{Vector2, EuclideanVector, Vector};
+use cgmath::{Vector3, EuclideanVector, Vector};
 use std::cmp::min;
 use http::client::RequestWriter;
 use http::method::Get;
@@ -56,37 +56,46 @@ fn expand_relation(elem: &OsmElement, elements: &HashMap<int, OsmElement>) -> Ve
     ways
 }
 
-type Vec2 = Vector2<f64>;
+type Vec3 = Vector3<f64>;
 
-fn top(w: &mut Wavefront, height: f64, a: Vec2, a1: Vec2, b: Vec2, b1: Vec2) {
-    w.add_vertex(a.x, height, a.y);
-    w.add_vertex(a1.x, height, a1.y);
-    w.add_vertex(b1.x, height, b1.y);
-    w.add_vertex(b.x, height, b.y);
+
+fn top(w: &mut Wavefront, a: Vec3, a1: Vec3, b: Vec3, b1: Vec3) {
+    w.add_vertex(a.x, a.y, a.z);
+    w.add_vertex(a1.x, a1.y, a1.z);
+    w.add_vertex(b1.x, b1.y, b1.z);
+    w.add_vertex(b.x, b.y, b.z);
     w.add_face(vec!(-1, -2, -3, -4));
 }
 
-fn side(w: &mut Wavefront, height: f64, a: Vec2, b: Vec2) {
-    w.add_vertex(a.x, 0.0, a.y);
-    w.add_vertex(a.x, height, a.y);
-    w.add_vertex(b.x, height, b.y);
-    w.add_vertex(b.x, 0.0, b.y);
+fn bot(w: &mut Wavefront, a: Vec3, a1: Vec3, b: Vec3, b1: Vec3) {
+    w.add_vertex(a.x, 0.0, a.z);
+    w.add_vertex(a1.x, 0.0, a1.z);
+    w.add_vertex(b1.x, 0.0, b1.z);
+    w.add_vertex(b.x, 0.0, b.z);
     w.add_face(vec!(-1, -2, -3, -4));
 }
 
-fn to_wavefront(thickness: f64, height: f64, ways: Vec<Vec<Vec2>>) -> Wavefront {
+fn side(w: &mut Wavefront, a: Vec3, b: Vec3) {
+    w.add_vertex(a.x, 0.0, a.z);
+    w.add_vertex(a.x, a.y, a.z);
+    w.add_vertex(b.x, b.y, b.z);
+    w.add_vertex(b.x, 0.0, b.z);
+    w.add_face(vec!(-1, -2, -3, -4));
+}
+
+fn to_wavefront(thickness: f64, ways: Vec<Vec<Vec3>>) -> Wavefront {
     let mut w = Wavefront::new();
     for coords in ways.iter() {
         let mut iter = coords.iter().zip(coords.iter().skip(1));
         for (&a, &b) in iter {
-            let ab = Vector2::new(b.x - a.x, b.y - a.y).normalize();
-            let p = Vector2::new(-ab.y, ab.x);
+            let ab = Vector3::new(b.x - a.x, 0.0, b.z - a.z).normalize();
+            let p = Vector3::new(-ab.y, 0.0, ab.x);
             let a1 = a + p.mul_s(thickness);
             let b1 = b + p.mul_s(thickness);
-            top(&mut w, height, a, a1, b, b1);
-            side(&mut w, height, a, b);
-            side(&mut w, height, a1, b1);
-            top(&mut w, 0.0, a, a1, b, b1);
+            top(&mut w, a, a1, b, b1);
+            side(&mut w, a, b);
+            side(&mut w, a1, b1);
+            bot(&mut w, a, a1, b, b1);
         }
     }
     w
@@ -139,21 +148,24 @@ fn get_heights(latlngs: &Vec<(f64, f64)>) -> Vec<f64> {
     heights
 }
 
-fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> Vec<Vec<Vec2>> {
+fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> Vec<Vec<Vec3>> {
     let mut coords = Vec::new();
     let flat = ways.as_slice().concat_vec();
     let heights = get_heights(&flat);
-    let (sh, _) = scale(&heights, 20);
-    println!("{} {}", heights, sh);
+    let (sh, min_h) = scale(&heights, 5);
     let lats = flat.iter().map(|&(x, _)| x).collect();
     let lngs = flat.iter().map(|&(_, y)| y).collect();
     let (sx, min_x) = scale(&lats, size);
     let (sy, min_y) = scale(&lngs, size);
     let s = if sx < sy {sx} else {sy};
+    let mut i = 0;
     for latlngs in ways.iter() {
         let mut way = Vec::new();
         for &(lat, lng) in latlngs.iter() {
-            way.push(Vector2::new((lat - min_x) * s, (lng - min_y) * s));
+            way.push(Vector3::new((lat - min_x) * s,
+                                  (heights[i] - min_h) * sh + 0.1,
+                                  (lng - min_y) * s));
+            i += 1
         }
         coords.push(way);
     }
@@ -174,6 +186,6 @@ fn main() {
     }).next().unwrap();
     let latlngs = expand_relation(relation, &osm.elements);
     let coords = latlngs_to_coords(latlngs, 200);
-    let obj = to_wavefront(0.5, 2.0, coords);
+    let obj = to_wavefront(0.5, coords);
     println!("{}", obj.to_string());
 }
