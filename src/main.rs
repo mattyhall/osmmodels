@@ -66,7 +66,7 @@ fn main() {
     let track = "Ciruit de Spa Francorchamps".to_string();
     let relation = osm.elements.values().filter(|e| {
         match **e {
-            Relation{id: _, members: _, tags: ref ts} => {
+            Relation{tags: ref ts, ..} => {
                 ts.find(&"name".to_string()) == Some(&track)
             }
             _ => false
