@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use osmxml::{Osm, OsmElement, Relation, Way, Node};
 use track_visulisation::{Wavefront};
 use cgmath::{Vector2, EuclideanVector, Vector};
+use std::cmp::min;
 
 fn expand_element(elem: &OsmElement, elements: &HashMap<int, OsmElement>) -> Vec<(f64, f64)> {
     let refs = match *elem {
@@ -60,6 +61,30 @@ fn to_wavefront(thickness: f64, height: f64, latlngs: Vec<(f64, f64)>) -> Wavefr
     w
 }
 
+fn scale(points: Vec<f64>, size: int) -> (f64, f64) {
+    // see http://www.reddit.com/r/rust/comments/29kia3/no_ord_for_f32/
+    let mut points = points;
+    points.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Equal));
+    let min = points[0];
+    let max = points.last().unwrap();
+    ((size as f64) / (max - min), min)
+}
+
+fn latlngs_to_coords(latlngs: Vec<(f64, f64)>, size: int) -> Vec<Vec2> {
+    let lats = latlngs.iter().map(|&(x, _)| x).collect();
+    let lngs = latlngs.iter().map(|&(_, y)| y).collect();
+    let (sx, min_x) = scale(lats, size);
+    let (sy, min_y) = scale(lngs, size);
+    let s = if sx < sy {sx} else {sy};
+    let mut coords = Vec::new();
+
+    for &(lat, lng) in latlngs.iter() {
+        coords.push(Vector2::new((lat - min_x) * s, (lng - min_y) * s));
+    }
+
+    coords
+}
+
 fn main() {
     let path = &Path::new("spa.osm");
     let osm = Osm::new(path).unwrap();
@@ -72,6 +97,8 @@ fn main() {
             _ => false
         }
     }).next().unwrap();
-    let obj = to_wavefront(0.001, 0.005, expand_element(relation, &osm.elements));
-    println!("{}", obj.to_string());
+    let latlngs = expand_element(relation, &osm.elements);
+    println!("{}", latlngs_to_coords(latlngs, 200));
+    //let obj = to_wavefront(0.001, 0.005, latlngs);
+    //println!("{}", obj.to_string());
 }
