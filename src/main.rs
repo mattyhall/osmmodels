@@ -13,6 +13,7 @@ use std::cmp::min;
 use http::client::RequestWriter;
 use http::method::Get;
 use std::os;
+use std::io::File;
 use url::Url;
 use serialize::json;
 use std::str;
@@ -177,19 +178,27 @@ fn metres_to_coord(m: f64, s: f64) -> f64 {
 }
 
 fn main() {
-    let path = &Path::new("spa.osm");
+    let args = os::args();
+    let ref osm_filename = args[1];
+    let ref track_name = args[2];
+    let ref out_filename = args[3];
+    let path = &Path::new(osm_filename.clone());
+    println!("Reading osm file");
     let osm = Osm::new(path).unwrap();
-    let track = "Ciruit de Spa Francorchamps".to_string();
     let relation = osm.elements.values().filter(|e| {
         match **e {
             Relation{tags: ref ts, ..} => {
-                ts.find(&"name".to_string()) == Some(&track)
+                ts.find(&"name".to_string()) == Some(track_name)
             }
             _ => false
         }
-    }).next().unwrap();
+    }).next().expect(format!("Could not find relation with name {}", track_name).as_slice());
+    println!("Finding nodes of the track");
     let latlngs = expand_relation(relation, &osm.elements);
+    println!("Converting to model");
     let (coords, scale) = latlngs_to_coords(latlngs, 200);
     let obj = to_wavefront(metres_to_coord(14.0, scale), coords);
-    println!("{}", obj.to_string());
+    println!("Saving");
+    let mut f = File::open(&Path::new(out_filename.clone()));
+    f.write_str(obj.to_string().as_slice());
 }
