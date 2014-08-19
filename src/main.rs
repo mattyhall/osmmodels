@@ -13,7 +13,7 @@ use std::cmp::min;
 use http::client::RequestWriter;
 use http::method::Get;
 use std::os;
-use std::io::File;
+use std::io::{File, Open, Write};
 use url::Url;
 use serialize::json;
 use std::str;
@@ -164,7 +164,7 @@ fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> (Vec<Vec<Vec3>>, 
         let mut way = Vec::new();
         for &(lat, lng) in latlngs.iter() {
             way.push(Vector3::new((lat - min_x) * s,
-                                  metres_to_coord(heights[i] - min_h + 0.1, s),
+                                  metres_to_coord(heights[i] - min_h + 0.5, s),
                                   (lng - min_y) * s));
             i += 1
         }
@@ -199,6 +199,6 @@ fn main() {
     let (coords, scale) = latlngs_to_coords(latlngs, 200);
     let obj = to_wavefront(metres_to_coord(14.0, scale), coords);
     println!("Saving");
-    let mut f = File::open(&Path::new(out_filename.clone()));
-    f.write_str(obj.to_string().as_slice());
+    let mut f = File::open_mode(&Path::new(out_filename.clone()), Open, Write);
+    f.write_str(obj.to_string().as_slice()).unwrap();
 }
