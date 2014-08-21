@@ -87,17 +87,37 @@ fn side(w: &mut Wavefront, a: Vec3, b: Vec3) {
 fn to_wavefront(thickness: f64, ways: Vec<Vec<Vec3>>) -> Wavefront {
     let mut w = Wavefront::new();
     for coords in ways.iter() {
-        let mut iter = coords.iter().zip(coords.iter().skip(1));
-        for (&a, &b) in iter {
+        let mut iter = coords.iter().zip(coords.iter().skip(1)).zip(coords.iter().skip(2));
+        for ((&a, &b), &c) in iter {
             let ab = Vector3::new(b.x - a.x, 0.0, b.z - a.z).normalize();
+            let bc = Vector3::new(c.x - b.x, 0.0, c.z - b.z).normalize();
             let p = Vector3::new(-ab.y, 0.0, ab.x);
+            let p2 = Vector3::new(-bc.y, 0.0, bc.x);
             let a1 = a + p.mul_s(thickness);
             let b1 = b + p.mul_s(thickness);
+            let c1 = c + p2.mul_s(thickness);
             top(&mut w, a, a1, b, b1);
             side(&mut w, a, b);
             side(&mut w, a1, b1);
             bot(&mut w, a, a1, b, b1);
+
+            top(&mut w, b, b1, c, c1);
+            side(&mut w, b, c);
+            side(&mut w, b1, c1);
+            bot(&mut w, b, b1, c, c1);
         }
+
+        let &a = coords.iter().nth(coords.len() - 2).unwrap();
+        let &b = coords.iter().last().unwrap();
+        let ab = Vector3::new(b.x - a.x, 0.0, b.z - a.z).normalize();
+        let p = Vector3::new(-ab.y, 0.0, ab.x);
+        let a1 = a + p.mul_s(thickness);
+        let b1 = b + p.mul_s(thickness);
+        top(&mut w, a, a1, b, b1);
+        side(&mut w, a, b);
+        side(&mut w, a1, b1);
+        bot(&mut w, a, a1, b, b1);
+
     }
     w
 }
