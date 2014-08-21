@@ -131,10 +131,10 @@ fn scale(points: &Vec<f64>, size: int) -> (f64, f64) {
     ((size as f64) / (max - min), min)
 }
 
-fn get_heights_iter<'a, I: Iterator<&'a (f64, f64)>>(api: &String, latlngs: I) -> Vec<f64> {
+fn get_heights_request(api: &String, latlngs: Vec<&(f64, f64)>) -> Vec<f64> {
     let mut heights = Vec::new();
-    let s: Vec<String> = latlngs.take(100)
-                                .map(|&(lat,lng)| format!("{},{}", lat, lng))
+    let s: Vec<String> = latlngs.iter()
+                                .map(|&&(lat,lng)| format!("{},{}", lat, lng))
                                 .collect();
     let url = Url::parse(format!(
         "https://maps.googleapis.com/maps/api/elevation/json?key={}&locations={}",
@@ -159,11 +159,11 @@ fn get_heights(latlngs: &Vec<(f64, f64)>) -> Vec<f64> {
     let mut heights = Vec::new();
     let mut i = 0;
     loop {
-        let iter = latlngs.iter().skip(i).take(100);
+        let mut iter = latlngs.iter().skip(i).take(100);
         if i > latlngs.len() {
             break;
         }
-        heights.push_all(get_heights_iter(&api, iter).as_slice());
+        heights.push_all(get_heights_request(&api, iter.collect()).as_slice());
         i += 100;
     }
     heights
