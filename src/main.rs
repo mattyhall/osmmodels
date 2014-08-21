@@ -163,32 +163,37 @@ fn get_heights(latlngs: &Vec<(f64, f64)>) -> Vec<f64> {
     heights
 }
 
+fn latlng_to_metres(lat: f64, lng: f64) -> (f64, f64) {
+    // not technically true. Luckilly it shouldn't matter at the scale we deal with
+    (lat * 111111.0, lng * 111111.0 * lat.to_radians().cos())
+}
+
 fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> (Vec<Vec<V3>>, f64) {
     let mut coords = Vec::new();
     let flat = ways.as_slice().concat_vec();
+    let mtrs: Vec<(f64, f64)> = 
+        flat.iter()
+            .map(|&(lat, lng)| latlng_to_metres(lat, lng)).collect();
     let heights = get_heights(&flat);
     let (_, min_h) = scale(&heights, 5);
-    let lats = flat.iter().map(|&(x, _)| x).collect();
-    let lngs = flat.iter().map(|&(_, y)| y).collect();
-    let (sx, min_x) = scale(&lats, size);
-    let (sy, min_y) = scale(&lngs, size);
+    let xs = mtrs.iter().map(|&(x, _)| x).collect();
+    let ys = mtrs.iter().map(|&(_, y)| y).collect();
+    let (sx, min_x) = scale(&xs, size);
+    let (sy, min_y) = scale(&ys, size);
     let s = if sx < sy {sx} else {sy};
     let mut i = 0;
     for latlngs in ways.iter() {
         let mut way = Vec::new();
         for &(lat, lng) in latlngs.iter() {
-            way.push(Vector3::new((lat - min_x) * s,
-                                  metres_to_coord(heights[i] - min_h + 0.5, s),
-                                  (lng - min_y) * s));
+            let (x, y) = latlng_to_metres(lat, lng);
+            way.push(Vector3::new((x - min_x) * s,
+                                  (heights[i] - min_h) * s,
+                                  (y - min_y) * s));
             i += 1
         }
         coords.push(way);
     }
     (coords, s)
-}
-
-fn metres_to_coord(m: f64, s: f64) -> f64 {
-    (m / 111319.9) * s
 }
 
 fn main() {
@@ -211,7 +216,7 @@ fn main() {
     let latlngs = expand_relation(relation, &osm.elements);
     println!("Converting to model");
     let (coords, scale) = latlngs_to_coords(latlngs, 200);
-    let obj = to_wavefront(metres_to_coord(14.0, scale), coords);
+    let obj = to_wavefront(14.0 * scale, coords);
     println!("Saving");
     let mut f = File::open_mode(&Path::new(out_filename.clone()), Open, Write);
     f.write_str(obj.to_string().as_slice()).unwrap();
