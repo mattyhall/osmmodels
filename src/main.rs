@@ -1,4 +1,4 @@
-extern crate track_visulisation;
+extern crate osmmodels;
 extern crate osmxml;
 extern crate cgmath;
 extern crate http;
@@ -7,7 +7,7 @@ extern crate url;
 
 use std::collections::HashMap;
 use osmxml::{Osm, OsmElement, Relation, Way, Node};
-use track_visulisation::{Wavefront};
+use osmmodels::{Wavefront};
 use cgmath::{Vector3, EuclideanVector, Vector};
 use std::cmp::min;
 use http::client::RequestWriter;
