@@ -131,10 +131,10 @@ fn scale(points: &Vec<f64>, size: int) -> (f64, f64) {
     ((size as f64) / (max - min), min)
 }
 
-fn get_heights_request(api: &String, latlngs: Vec<&(f64, f64)>) -> Vec<f64> {
+fn get_heights_request(api: &String, latlngs: &[(f64, f64)]) -> Vec<f64> {
     let mut heights = Vec::new();
     let s: Vec<String> = latlngs.iter()
-                                .map(|&&(lat,lng)| format!("{},{}", lat, lng))
+                                .map(|&(lat,lng)| format!("{},{}", lat, lng))
                                 .collect();
     let url = Url::parse(format!(
         "https://maps.googleapis.com/maps/api/elevation/json?key={}&locations={}",
@@ -157,14 +157,8 @@ fn get_heights_request(api: &String, latlngs: Vec<&(f64, f64)>) -> Vec<f64> {
 fn get_heights(latlngs: &Vec<(f64, f64)>) -> Vec<f64> {
     let api: String = os::getenv("GAPI").expect("Please set GAPI");
     let mut heights = Vec::new();
-    let mut i = 0;
-    loop {
-        let mut iter = latlngs.iter().skip(i).take(100);
-        if i > latlngs.len() {
-            break;
-        }
-        heights.push_all(get_heights_request(&api, iter.collect()).as_slice());
-        i += 100;
+    for chunk in latlngs.as_slice().chunks(100) {
+        heights.push_all(get_heights_request(&api, chunk).as_slice());
     }
     heights
 }
