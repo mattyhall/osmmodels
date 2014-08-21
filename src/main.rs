@@ -57,10 +57,10 @@ fn expand_relation(elem: &OsmElement, elements: &HashMap<int, OsmElement>) -> Ve
     ways
 }
 
-type Vec3 = Vector3<f64>;
+type V3 = Vector3<f64>;
 
 
-fn top(w: &mut Wavefront, a: Vec3, a1: Vec3, b: Vec3, b1: Vec3) {
+fn top(w: &mut Wavefront, a: V3, a1: V3, b: V3, b1: V3) {
     w.add_vertex(a.x, a.y, a.z);
     w.add_vertex(a1.x, a1.y, a1.z);
     w.add_vertex(b1.x, b1.y, b1.z);
@@ -68,7 +68,7 @@ fn top(w: &mut Wavefront, a: Vec3, a1: Vec3, b: Vec3, b1: Vec3) {
     w.add_face(vec!(-1, -2, -3, -4));
 }
 
-fn bot(w: &mut Wavefront, a: Vec3, a1: Vec3, b: Vec3, b1: Vec3) {
+fn bot(w: &mut Wavefront, a: V3, a1: V3, b: V3, b1: V3) {
     w.add_vertex(a.x, 0.0, a.z);
     w.add_vertex(a1.x, 0.0, a1.z);
     w.add_vertex(b1.x, 0.0, b1.z);
@@ -76,7 +76,7 @@ fn bot(w: &mut Wavefront, a: Vec3, a1: Vec3, b: Vec3, b1: Vec3) {
     w.add_face(vec!(-1, -2, -3, -4));
 }
 
-fn side(w: &mut Wavefront, a: Vec3, b: Vec3) {
+fn side(w: &mut Wavefront, a: V3, b: V3) {
     w.add_vertex(a.x, 0.0, a.z);
     w.add_vertex(a.x, a.y, a.z);
     w.add_vertex(b.x, b.y, b.z);
@@ -84,7 +84,7 @@ fn side(w: &mut Wavefront, a: Vec3, b: Vec3) {
     w.add_face(vec!(-1, -2, -3, -4));
 }
 
-fn to_wavefront(thickness: f64, ways: Vec<Vec<Vec3>>) -> Wavefront {
+fn to_wavefront(thickness: f64, ways: Vec<Vec<V3>>) -> Wavefront {
     let mut w = Wavefront::new();
     for coords in ways.iter() {
         let mut iter = coords.iter().zip(coords.iter().skip(1)).zip(coords.iter().skip(2));
@@ -163,7 +163,7 @@ fn get_heights(latlngs: &Vec<(f64, f64)>) -> Vec<f64> {
     heights
 }
 
-fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> (Vec<Vec<Vec3>>, f64) {
+fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> (Vec<Vec<V3>>, f64) {
     let mut coords = Vec::new();
     let flat = ways.as_slice().concat_vec();
     let heights = get_heights(&flat);
