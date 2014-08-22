@@ -84,40 +84,30 @@ fn side(w: &mut Wavefront, a: V3, b: V3) {
     w.add_face(vec!(-1, -2, -3, -4));
 }
 
+fn join_up(w: &mut Wavefront, a: V3, b: V3, thickness: f64) {
+    let ab = Vector3::new(b.x - a.x, 0.0, b.z - a.z).normalize();
+    let p = Vector3::new(-ab.y, 0.0, ab.x);
+    let a1 = a + p.mul_s(thickness);
+    let b1 = b + p.mul_s(thickness);
+    top(w, a, a1, b, b1);
+    side(w, a, b);
+    side(w, a1, b1);
+    bot(w, a, a1, b, b1);
+}
+
 fn to_wavefront(thickness: f64, ways: Vec<Vec<V3>>) -> Wavefront {
     let mut w = Wavefront::new();
     for coords in ways.iter() {
-        let mut iter = coords.iter().zip(coords.iter().skip(1)).zip(coords.iter().skip(2));
+        let mut iter = coords.iter().zip(coords.iter().skip(1))
+                                    .zip(coords.iter().skip(2));
         for ((&a, &b), &c) in iter {
-            let ab = Vector3::new(b.x - a.x, 0.0, b.z - a.z).normalize();
-            let bc = Vector3::new(c.x - b.x, 0.0, c.z - b.z).normalize();
-            let p = Vector3::new(-ab.y, 0.0, ab.x);
-            let p2 = Vector3::new(-bc.y, 0.0, bc.x);
-            let a1 = a + p.mul_s(thickness);
-            let b1 = b + p.mul_s(thickness);
-            let c1 = c + p2.mul_s(thickness);
-            top(&mut w, a, a1, b, b1);
-            side(&mut w, a, b);
-            side(&mut w, a1, b1);
-            bot(&mut w, a, a1, b, b1);
-
-            top(&mut w, b, b1, c, c1);
-            side(&mut w, b, c);
-            side(&mut w, b1, c1);
-            bot(&mut w, b, b1, c, c1);
+            join_up(&mut w, a, b, thickness);
+            join_up(&mut w, b, c, thickness);
         }
 
         let &a = coords.iter().nth(coords.len() - 2).unwrap();
         let &b = coords.iter().last().unwrap();
-        let ab = Vector3::new(b.x - a.x, 0.0, b.z - a.z).normalize();
-        let p = Vector3::new(-ab.y, 0.0, ab.x);
-        let a1 = a + p.mul_s(thickness);
-        let b1 = b + p.mul_s(thickness);
-        top(&mut w, a, a1, b, b1);
-        side(&mut w, a, b);
-        side(&mut w, a1, b1);
-        bot(&mut w, a, a1, b, b1);
-
+        join_up(&mut w, a, b, thickness);
     }
     w
 }
@@ -164,7 +154,7 @@ fn get_heights(latlngs: &Vec<(f64, f64)>) -> Vec<f64> {
 }
 
 fn latlng_to_metres(lat: f64, lng: f64) -> (f64, f64) {
-    // not technically true. Luckilly it shouldn't matter at the scale we deal with
+    // not technically true. Luckily it shouldn't matter at the scale we deal with
     (lat * 111111.0, lng * 111111.0 * lat.to_radians().cos())
 }
 
