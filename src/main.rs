@@ -17,6 +17,7 @@ use std::io::{File, Open, Write};
 use url::Url;
 use serialize::json;
 use std::str;
+use std::f64;
 
 fn expand_node(elem: &OsmElement) -> (f64, f64) {
     match *elem {
@@ -112,12 +113,16 @@ fn to_wavefront(thickness: f64, ways: Vec<Vec<V3>>) -> Wavefront {
     w
 }
 
-fn scale(points: &Vec<f64>, size: int) -> (f64, f64) {
-    // see http://www.reddit.com/r/rust/comments/29kia3/no_ord_for_f32/
-    let mut points = points.clone();
-    points.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Equal));
-    let min = points[0];
-    let max = points.last().unwrap();
+fn scale(points: &[f64], size: int) -> (f64, f64) {
+    let mut min = f64::INFINITY;
+    let mut max = f64::NEG_INFINITY;
+    for &point in points.iter() {
+        if point < min {
+            min = point;
+        } else if point > min {
+            max = point;
+        }
+    }
     ((size as f64) / (max - min), min)
 }
 
@@ -165,11 +170,11 @@ fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> (Vec<Vec<V3>>, f6
         flat.iter()
             .map(|&(lat, lng)| latlng_to_metres(lat, lng)).collect();
     let heights = get_heights(flat.as_slice());
-    let (_, min_h) = scale(&heights, 5);
-    let xs = mtrs.iter().map(|&(x, _)| x).collect();
-    let ys = mtrs.iter().map(|&(_, y)| y).collect();
-    let (sx, min_x) = scale(&xs, size);
-    let (sy, min_y) = scale(&ys, size);
+    let (_, min_h) = scale(heights.as_slice(), 5);
+    let xs: Vec<f64> = mtrs.iter().map(|&(x, _)| x).collect();
+    let ys: Vec<f64> = mtrs.iter().map(|&(_, y)| y).collect();
+    let (sx, min_x) = scale(xs.as_slice(), size);
+    let (sy, min_y) = scale(ys.as_slice(), size);
     let s = if sx < sy {sx} else {sy};
     let mut i = 0;
     for latlngs in ways.iter() {
