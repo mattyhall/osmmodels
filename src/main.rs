@@ -166,13 +166,9 @@ fn latlng_to_metres(lat: f64, lng: f64) -> (f64, f64) {
 fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> (Vec<Vec<V3>>, f64) {
     let mut coords = Vec::new();
     let flat = ways.as_slice().concat_vec();
-    let mtrs: Vec<(f64, f64)> = 
-        flat.iter()
-            .map(|&(lat, lng)| latlng_to_metres(lat, lng)).collect();
     let heights = get_heights(flat.as_slice());
     let (_, min_h) = scale(heights.as_slice(), 5);
-    let xs: Vec<f64> = mtrs.iter().map(|&(x, _)| x).collect();
-    let ys: Vec<f64> = mtrs.iter().map(|&(_, y)| y).collect();
+    let (xs, ys): (Vec<f64>, Vec<f64>) = std::vec::unzip(flat.iter().map(|&(lat, lng)| latlng_to_metres(lat, lng)));
     let (sx, min_x) = scale(xs.as_slice(), size);
     let (sy, min_y) = scale(ys.as_slice(), size);
     let s = if sx < sy {sx} else {sy};
