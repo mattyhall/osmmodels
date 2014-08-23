@@ -144,7 +144,7 @@ fn get_heights_request(api: &str, latlngs: &[(f64, f64)]) -> Vec<f64> {
     heights
 }
 
-fn get_heights(latlngs: &Vec<(f64, f64)>) -> Vec<f64> {
+fn get_heights(latlngs: &[(f64, f64)]) -> Vec<f64> {
     let api: String = os::getenv("GAPI").expect("Please set GAPI");
     let mut heights = Vec::new();
     for chunk in latlngs.as_slice().chunks(100) {
@@ -164,7 +164,7 @@ fn latlngs_to_coords(ways: Vec<Vec<(f64, f64)>>, size: int) -> (Vec<Vec<V3>>, f6
     let mtrs: Vec<(f64, f64)> = 
         flat.iter()
             .map(|&(lat, lng)| latlng_to_metres(lat, lng)).collect();
-    let heights = get_heights(&flat);
+    let heights = get_heights(flat.as_slice());
     let (_, min_h) = scale(&heights, 5);
     let xs = mtrs.iter().map(|&(x, _)| x).collect();
     let ys = mtrs.iter().map(|&(_, y)| y).collect();
