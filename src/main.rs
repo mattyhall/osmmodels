@@ -194,14 +194,14 @@ fn main() {
     let path = &Path::new(osm_filename.clone());
     println!("Reading osm file");
     let osm = Osm::new(path).unwrap();
-    let relation = osm.elements.values().filter(|e| {
+    let relation = osm.elements.values().find(|e| {
         match **e {
             Relation{tags: ref ts, ..} => {
                 ts.find(&"name".to_string()) == Some(track_name)
             }
             _ => false
         }
-    }).next().expect(format!("Could not find relation with name {}", track_name).as_slice());
+    }).expect(format!("Could not find relation with name {}", track_name).as_slice());
     println!("Finding nodes of the track");
     let latlngs = expand_relation(relation, &osm.elements);
     println!("Converting to model");
